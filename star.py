@@ -5,6 +5,8 @@ import random
 from curses_tools import draw_frame, read_controls, get_frame_size
 from itertools import cycle
 
+TICK_TIMEOUT = 0.1
+
 
 async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0):
     """Display animation of gun shot, direction and speed can be specified."""
@@ -36,9 +38,9 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
         column += columns_speed
 
 
-async def blink(canvas, row, column, symbol="*"):
+async def blink(canvas, row, column, offset_tics, symbol="*"):
     while True:
-        for _ in range(random.randint(1, 20)):
+        for _ in range(offset_tics):
             await asyncio.sleep(0)
 
         canvas.addstr(row, column, symbol, curses.A_DIM)
@@ -70,20 +72,20 @@ async def animate_spaceship(canvas, row, column, frame1, frame2):
     row_f = max(row_f1, row_f2)
     column_f = max(column_f1, column_f2)
 
-    for item in cycle("1"):
+    for _ in cycle(
+        (
+            frame1,
+            frame1,
+            frame2,
+            frame2,
+        )
+    ):
         row_new, column_new, flag = read_controls(canvas)
 
-        row += row_new
-        column += column_new
-
-        if not (1 < row < row_max - 1 - row_f) or not (
-            1 < column < column_max - 1 - column_f
-        ):
-            row -= row_new
-            column -= column_new
+        row = min(max(1, row + row_new), row_max - 1 - row_f)
+        column = min(max(1, column + column_new), column_max - 1 - column_f)
 
         draw_frame(canvas, row, column, frame1)
-        canvas.refresh()
         await asyncio.sleep(0)
 
         # стираем предыдущий кадр, прежде чем рисовать новый
@@ -94,8 +96,13 @@ async def animate_spaceship(canvas, row, column, frame1, frame2):
             frame1,
             negative=True,
         )
+
+        row_new, column_new, flag = read_controls(canvas)
+
+        row = min(max(1, row + row_new), row_max - 1 - row_f)
+        column = min(max(1, column + column_new), column_max - 1 - column_f)
+
         draw_frame(canvas, row, column, frame2)
-        canvas.refresh()
         await asyncio.sleep(0)
 
         draw_frame(
@@ -108,18 +115,16 @@ async def animate_spaceship(canvas, row, column, frame1, frame2):
 
 
 def draw(canvas):
-    with open("file/rocket_frame_1.txt", "r") as f:
+    with open("./file/rocket_frame_1.txt", "r") as f:
         rocket_frame_1 = f.read()
 
-    with open("file/rocket_frame_2.txt", "r") as f:
+    with open("./file/rocket_frame_2.txt", "r") as f:
         rocket_frame_2 = f.read()
 
     row, column = canvas.getmaxyx()
-    TICK_TIMEOUT = 0.1
     # сделать ввод неблокирующим
     canvas.nodelay(True)
     canvas.border()
-    canvas.refresh()
     star = "+*.:"
 
     coroutines = [
@@ -138,6 +143,7 @@ def draw(canvas):
                 canvas,
                 random.randint(1, row - 2),
                 random.randint(1, column - 2),
+                random.randint(1, 20),
                 random.choice(star),
             )
         )
@@ -146,7 +152,7 @@ def draw(canvas):
         try:
             for coroutine in coroutines.copy():
                 coroutine.send(None)
-                canvas.refresh()
+            canvas.refresh()
             time.sleep(TICK_TIMEOUT)
         except StopIteration:
             coroutines.remove(coroutine)
