@@ -108,10 +108,10 @@ async def animate_spaceship(canvas, row, column, frame1, frame2):
 
 
 def draw(canvas):
-    with open("z:/PYTHON CODE/asnc_course/file/rocket_frame_1.txt", "r") as f:
+    with open("file/rocket_frame_1.txt", "r") as f:
         rocket_frame_1 = f.read()
 
-    with open("z:/PYTHON CODE/asnc_course/file/rocket_frame_2.txt", "r") as f:
+    with open("file/rocket_frame_2.txt", "r") as f:
         rocket_frame_2 = f.read()
 
     row, column = canvas.getmaxyx()
