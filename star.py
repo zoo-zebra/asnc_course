@@ -11,6 +11,11 @@ GARBAGE = ("duck", "hubble", "lamp", "trash_large", "trash_small", "trash_xl")
 coroutines = []
 
 
+async def sleep(tics=1):
+    for _ in range(tics):
+        await asyncio.sleep(0)
+
+
 async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0):
     """Display animation of gun shot, direction and speed can be specified."""
 
@@ -43,24 +48,19 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
 
 async def blink(canvas, row, column, offset_tics, symbol="*"):
     while True:
-        for _ in range(offset_tics):
-            await asyncio.sleep(0)
+        await sleep(offset_tics)
 
         canvas.addstr(row, column, symbol, curses.A_DIM)
-        for _ in range(20):
-            await asyncio.sleep(0)
+        await sleep(20)
 
         canvas.addstr(row, column, symbol)
-        for _ in range(3):
-            await asyncio.sleep(0)
+        await sleep(3)
 
         canvas.addstr(row, column, symbol, curses.A_BOLD)
-        for _ in range(5):
-            await asyncio.sleep(0)
+        await sleep(5)
 
         canvas.addstr(row, column, symbol)
-        for _ in range(3):
-            await asyncio.sleep(0)
+        await sleep(3)
 
 
 async def animate_spaceship(canvas, row, column, frame1, frame2):
@@ -113,8 +113,7 @@ async def fill_orbit_with_garbage(canvas, garbage_frames):
                 garbage_frame=random.choice(garbage_frames),
             )
         )
-        for _ in range(20):
-            await asyncio.sleep(0)
+        await sleep(20)
 
 
 def draw(canvas):
