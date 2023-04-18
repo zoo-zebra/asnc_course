@@ -3,9 +3,12 @@ import curses
 import time
 import random
 from curses_tools import draw_frame, read_controls, get_frame_size
+from space_garbage import fly_garbage
 from itertools import cycle
 
 TICK_TIMEOUT = 0.1
+GARBAGE = ("duck", "hubble", "lamp", "trash_large", "trash_small", "trash_xl")
+coroutines = []
 
 
 async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0):
@@ -99,12 +102,33 @@ async def animate_spaceship(canvas, row, column, frame1, frame2):
         )
 
 
+async def fill_orbit_with_garbage(canvas, garbage_frames):
+    global coroutines
+    row_max, column_max = canvas.getmaxyx()
+    while True:
+        coroutines.append(
+            fly_garbage(
+                canvas,
+                column=random.randint(1, column_max - 1),
+                garbage_frame=random.choice(garbage_frames),
+            )
+        )
+        for _ in range(20):
+            await asyncio.sleep(0)
+
+
 def draw(canvas):
+    # считываем все файлы в начале что бы не сломать
     with open("./file/rocket_frame_1.txt", "r") as f:
         rocket_frame_1 = f.read()
 
     with open("./file/rocket_frame_2.txt", "r") as f:
         rocket_frame_2 = f.read()
+
+    garbage_frames = []
+    for item in GARBAGE:
+        with open(f"./file/{item}.txt", "r") as g:
+            garbage_frames.append(g.read())
 
     row, column = canvas.getmaxyx()
     # сделать ввод неблокирующим
@@ -112,7 +136,9 @@ def draw(canvas):
     canvas.border()
     star = "+*.:"
 
+    global coroutines
     coroutines = [
+        fill_orbit_with_garbage(canvas, garbage_frames),
         fire(canvas, round(row / 2), round(column / 2)),
         animate_spaceship(
             canvas,
