@@ -72,7 +72,7 @@ async def animate_spaceship(canvas, row, column, frame1, frame2):
     row_f = max(row_f1, row_f2)
     column_f = max(column_f1, column_f2)
 
-    for _ in cycle(
+    for frame in cycle(
         (
             frame1,
             frame1,
@@ -85,7 +85,8 @@ async def animate_spaceship(canvas, row, column, frame1, frame2):
         row = min(max(1, row + row_new), row_max - 1 - row_f)
         column = min(max(1, column + column_new), column_max - 1 - column_f)
 
-        draw_frame(canvas, row, column, frame1)
+        draw_frame(canvas, row, column, frame)
+
         await asyncio.sleep(0)
 
         # стираем предыдущий кадр, прежде чем рисовать новый
@@ -93,23 +94,7 @@ async def animate_spaceship(canvas, row, column, frame1, frame2):
             canvas,
             row,
             column,
-            frame1,
-            negative=True,
-        )
-
-        row_new, column_new, flag = read_controls(canvas)
-
-        row = min(max(1, row + row_new), row_max - 1 - row_f)
-        column = min(max(1, column + column_new), column_max - 1 - column_f)
-
-        draw_frame(canvas, row, column, frame2)
-        await asyncio.sleep(0)
-
-        draw_frame(
-            canvas,
-            row,
-            column,
-            frame2,
+            frame,
             negative=True,
         )
 
@@ -149,13 +134,13 @@ def draw(canvas):
         )
 
     while True:
-        try:
-            for coroutine in coroutines.copy():
+        for coroutine in coroutines.copy():
+            try:
                 coroutine.send(None)
-            canvas.refresh()
-            time.sleep(TICK_TIMEOUT)
-        except StopIteration:
-            coroutines.remove(coroutine)
+            except StopIteration:
+                coroutines.remove(coroutine)
+        canvas.refresh()
+        time.sleep(TICK_TIMEOUT)
 
         if len(coroutines) == 0:
             break
