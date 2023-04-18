@@ -12,9 +12,9 @@ pip install -r requirements.txt
 
 ### Пример запуска
 
-'''
+```
 python star.py
-'''
+```
 
 ### Цель проекта
 
