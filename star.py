@@ -2,9 +2,11 @@ import asyncio
 import curses
 import time
 import random
+from itertools import cycle
+
 from curses_tools import draw_frame, read_controls, get_frame_size
 from space_garbage import fly_garbage
-from itertools import cycle
+from physics import update_speed
 
 TICK_TIMEOUT = 0.1
 GARBAGE = ("duck", "hubble", "lamp", "trash_large", "trash_small", "trash_xl")
@@ -74,6 +76,7 @@ async def animate_spaceship(canvas, row, column, frame1, frame2):
     row_f2, column_f2 = get_frame_size(frame2)
     row_f = max(row_f1, row_f2)
     column_f = max(column_f1, column_f2)
+    row_speed = column_speed = 0
 
     for frame in cycle(
         (
@@ -85,8 +88,24 @@ async def animate_spaceship(canvas, row, column, frame1, frame2):
     ):
         row_new, column_new, flag = read_controls(canvas)
 
-        row = min(max(1, row + row_new), row_max - 1 - row_f)
-        column = min(max(1, column + column_new), column_max - 1 - column_f)
+        if flag:
+            coroutines.append(fire(canvas, row, column))
+
+        # плавное управление скоростью корабля
+        if row_new == -1:
+            row_speed, column_speed = update_speed(row_speed, column_speed, -1, 0)
+
+        if row_new == 1:
+            row_speed, column_speed = update_speed(row_speed, column_speed, 1, 0)
+
+        if column_new == -1:
+            row_speed, column_speed = update_speed(row_speed, column_speed, 0, -1)
+
+        if column_new == 1:
+            row_speed, column_speed = update_speed(row_speed, column_speed, 0, 1)
+
+        row = min(max(1, row + row_speed), row_max - 1 - row_f)
+        column = min(max(1, column + column_speed), column_max - 1 - column_f)
 
         draw_frame(canvas, row, column, frame)
 
