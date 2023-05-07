@@ -2,15 +2,34 @@ import asyncio
 import curses
 import time
 import random
+from obstacles import show_obstacles, has_collision
 from itertools import cycle
+from explosion import explode
 
 from curses_tools import draw_frame, read_controls, get_frame_size
-from space_garbage import fly_garbage
+from space_garbage import fly_garbage, obstacles, obstacles_in_last_collisions
 from physics import update_speed
 
 TICK_TIMEOUT = 0.1
 GARBAGE = ("duck", "hubble", "lamp", "trash_large", "trash_small", "trash_xl")
 coroutines = []
+
+
+async def show_gameover(canvas):
+    row, column = canvas.getmaxyx()
+    canvas.addstr(
+        round(row / 2),
+        round(column / 2),
+        """ 
+   _____                         ____                 
+  / ____|                       / __ \                 
+ | |  __  __ _ _ __ ___   ___  | |  | |_   _____ _ __ 
+ | | |_ |/ _` | '_ ` _ \ / _ \ | |  | \ \ / / _ \ '__|
+ | |__| | (_| | | | | | |  __/ | |__| |\ V /  __/ |   
+  \_____|\__,_|_| |_| |_|\___|  \____/  \_/ \___|_|                                                         
+                                                      """,
+    )
+    canvas.refresh()
 
 
 async def sleep(tics=1):
@@ -41,6 +60,12 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
     curses.beep()
 
     while 0 < row < max_row and 0 < column < max_column:
+        for ob in obstacles:
+            if ob.has_collision(row, column):
+                global obstacles_in_last_collisions
+                obstacles_in_last_collisions.append(ob)
+                await explode(canvas, row, column)
+                return
         canvas.addstr(round(row), round(column), symbol)
         await asyncio.sleep(0)
         canvas.addstr(round(row), round(column), " ")
@@ -86,6 +111,10 @@ async def animate_spaceship(canvas, row, column, frame1, frame2):
             frame2,
         )
     ):
+        for ob in obstacles:
+            if ob.has_collision(row, column):
+                await show_gameover(canvas)
+                return
         row_new, column_new, flag = read_controls(canvas)
 
         if flag:
@@ -125,13 +154,18 @@ async def fill_orbit_with_garbage(canvas, garbage_frames):
     global coroutines
     row_max, column_max = canvas.getmaxyx()
     while True:
+        column_random = random.randint(1, column_max - 1)
+        garbage_frame = random.choice(garbage_frames)
+        # obstacle_row, obstacle_column = get_frame_size(garbage_frame)
+        # obstacles.append(Obstacle(1, column_random, obstacle_row, obstacle_column))
         coroutines.append(
             fly_garbage(
                 canvas,
-                column=random.randint(1, column_max - 1),
-                garbage_frame=random.choice(garbage_frames),
+                column=column_random,
+                garbage_frame=garbage_frame,
             )
         )
+        # coroutines.append(show_obstacles(canvas, obstacles))
         await sleep(20)
 
 
