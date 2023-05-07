@@ -9,10 +9,28 @@ from explosion import explode
 from curses_tools import draw_frame, read_controls, get_frame_size
 from space_garbage import fly_garbage, obstacles, obstacles_in_last_collisions
 from physics import update_speed
+from game_scenario import get_garbage_delay_tics
+
 
 TICK_TIMEOUT = 0.1
 GARBAGE = ("duck", "hubble", "lamp", "trash_large", "trash_small", "trash_xl")
 coroutines = []
+year = 1957
+
+
+async def sleep(tics=1):
+    for _ in range(tics):
+        await asyncio.sleep(0)
+
+
+async def show_year(canvas):
+    global year
+
+    while True:
+        canvas.addstr(2, 2, str(year))
+        canvas.refresh()
+        await sleep(2)
+        year += 1
 
 
 async def show_gameover(canvas):
@@ -30,11 +48,6 @@ async def show_gameover(canvas):
                                                       """,
     )
     canvas.refresh()
-
-
-async def sleep(tics=1):
-    for _ in range(tics):
-        await asyncio.sleep(0)
 
 
 async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0):
@@ -152,12 +165,11 @@ async def animate_spaceship(canvas, row, column, frame1, frame2):
 
 async def fill_orbit_with_garbage(canvas, garbage_frames):
     global coroutines
+    global year
     row_max, column_max = canvas.getmaxyx()
     while True:
         column_random = random.randint(1, column_max - 1)
         garbage_frame = random.choice(garbage_frames)
-        # obstacle_row, obstacle_column = get_frame_size(garbage_frame)
-        # obstacles.append(Obstacle(1, column_random, obstacle_row, obstacle_column))
         coroutines.append(
             fly_garbage(
                 canvas,
@@ -166,7 +178,7 @@ async def fill_orbit_with_garbage(canvas, garbage_frames):
             )
         )
         # coroutines.append(show_obstacles(canvas, obstacles))
-        await sleep(20)
+        await sleep(get_garbage_delay_tics(year))
 
 
 def draw(canvas):
@@ -199,6 +211,7 @@ def draw(canvas):
             rocket_frame_1,
             rocket_frame_2,
         ),
+        show_year(canvas),
     ]
     for _ in range(50):
         coroutines.append(
