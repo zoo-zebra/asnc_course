@@ -16,6 +16,8 @@ TICK_TIMEOUT = 0.1
 GARBAGE = ("duck", "hubble", "lamp", "trash_large", "trash_small", "trash_xl")
 coroutines = []
 year = 1957
+frame_width = 1
+centering = 2
 
 
 async def sleep(tics=1):
@@ -68,7 +70,7 @@ async def fire(canvas, start_row, start_column, rows_speed=-0.3, columns_speed=0
     symbol = "-" if columns_speed else "|"
 
     rows, columns = canvas.getmaxyx()
-    max_row, max_column = rows - 1, columns - 1
+    max_row, max_column = rows - frame_width, columns - frame_width
 
     curses.beep()
 
@@ -130,7 +132,7 @@ async def animate_spaceship(canvas, row, column, frame1, frame2):
                 return
         row_new, column_new, flag = read_controls(canvas)
 
-        if flag:
+        if flag and year > 2020:
             coroutines.append(fire(canvas, row, column))
 
         # плавное управление скоростью корабля
@@ -146,14 +148,13 @@ async def animate_spaceship(canvas, row, column, frame1, frame2):
         if column_new == 1:
             row_speed, column_speed = update_speed(row_speed, column_speed, 0, 1)
 
-        row = min(max(1, row + row_speed), row_max - 1 - row_f)
-        column = min(max(1, column + column_speed), column_max - 1 - column_f)
+        row = min(max(1, row + row_speed), row_max - frame_width - row_f)
+        column = min(max(1, column + column_speed), column_max - frame_width - column_f)
 
         draw_frame(canvas, row, column, frame)
 
         await asyncio.sleep(0)
 
-        # стираем предыдущий кадр, прежде чем рисовать новый
         draw_frame(
             canvas,
             row,
@@ -168,7 +169,7 @@ async def fill_orbit_with_garbage(canvas, garbage_frames):
     global year
     row_max, column_max = canvas.getmaxyx()
     while True:
-        column_random = random.randint(1, column_max - 1)
+        column_random = random.randint(1, column_max - frame_width)
         garbage_frame = random.choice(garbage_frames)
         coroutines.append(
             fly_garbage(
@@ -177,12 +178,10 @@ async def fill_orbit_with_garbage(canvas, garbage_frames):
                 garbage_frame=garbage_frame,
             )
         )
-        # coroutines.append(show_obstacles(canvas, obstacles))
         await sleep(get_garbage_delay_tics(year))
 
 
 def draw(canvas):
-    # считываем все файлы в начале что бы не сломать
     with open("./file/rocket_frame_1.txt", "r") as f:
         rocket_frame_1 = f.read()
 
@@ -207,7 +206,7 @@ def draw(canvas):
         animate_spaceship(
             canvas,
             round(row / 2),
-            round(column / 2) - 2,
+            round(column / 2) - centering,
             rocket_frame_1,
             rocket_frame_2,
         ),
@@ -217,8 +216,8 @@ def draw(canvas):
         coroutines.append(
             blink(
                 canvas,
-                random.randint(1, row - 2),
-                random.randint(1, column - 2),
+                random.randint(1, row - centering),
+                random.randint(1, column - centering),
                 random.randint(1, 20),
                 random.choice(star),
             )
